@@ -1,0 +1,127 @@
+-- Script Name: Baby Blake's Gun & Glory Script
+
+-- Variables
+local GameName = "Rivals"
+local tab1name = "Main"
+local discordInvite = "https://discord.gg/ZGQUs9Cc" -- Your Discord server link
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/bloodball/-back-ups-for-libs/main/wizard"))()
+
+-- Create UI
+local Window = Library:NewWindow(GameName)
+local Tab1 = Window:NewSection(tab1name)
+
+-- Auto Aim Toggle
+Tab1:CreateToggle("Auto Aim", function(value)
+    _G.AutoAim = value
+    while _G.AutoAim do
+        local fov = 100
+        local RunService = game:GetService("RunService")
+        local Players = game:GetService("Players")
+        local Cam = game.Workspace.CurrentCamera
+
+        -- Functions
+        local function lookAt(target)
+            local lookVector = (target - Cam.CFrame.Position).unit
+            Cam.CFrame = CFrame.new(Cam.CFrame.Position, Cam.CFrame.Position + lookVector)
+        end
+
+        local function getClosestPlayerInFOV(targetPart)
+            local nearest = nil
+            local shortestDistance = fov
+            local playerMousePos = Cam.ViewportSize / 2
+
+            for _, player in ipairs(Players:GetPlayers()) do
+                if player ~= Players.LocalPlayer then
+                    local char = player.Character
+                    local part = char and char:FindFirstChild(targetPart)
+                    if part then
+                        local screenPos, onScreen = Cam:WorldToViewportPoint(part.Position)
+                        local distance = (Vector2.new(screenPos.X, screenPos.Y) - playerMousePos).Magnitude
+                        if distance < shortestDistance and onScreen then
+                            shortestDistance = distance
+                            nearest = player
+                        end
+                    end
+                end
+            end
+            return nearest
+        end
+
+        -- Main Loop
+        RunService.RenderStepped:Connect(function()
+            if _G.AutoAim then
+                local closestPlayer = getClosestPlayerInFOV("Head")
+                if closestPlayer and closestPlayer.Character and closestPlayer.Character:FindFirstChild("Head") then
+                    lookAt(closestPlayer.Character.Head.Position)
+                end
+            end
+        end)
+
+        wait(5)
+    end
+end)
+
+-- Infinite Jump Toggle
+Tab1:CreateToggle("Infinite Jump", function(value)
+    _G.InfiniteJumpEnabled = value
+    local UserInputService = game:GetService("UserInputService")
+
+    UserInputService.JumpRequest:Connect(function()
+        if _G.InfiniteJumpEnabled then
+            local humanoid = game:GetService("Players").LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+            if humanoid then
+                humanoid:ChangeState("Jumping")
+            end
+        end
+    end)
+end)
+
+-- ESP Button
+Tab1:CreateButton("Esp Player", function()
+    local FillColor = Color3.fromRGB(175, 25, 255)
+    local OutlineColor = Color3.fromRGB(255, 255, 255)
+    local Players = game:GetService("Players")
+    local CoreGui = game:GetService("CoreGui")
+    local Storage = Instance.new("Folder")
+    Storage.Name = "Highlight_Storage"
+    Storage.Parent = CoreGui
+
+    local function HighlightPlayer(player)
+        local highlight = Instance.new("Highlight")
+        highlight.Name = player.Name
+        highlight.FillColor = FillColor
+        highlight.FillTransparency = 0.5
+        highlight.OutlineColor = OutlineColor
+        highlight.OutlineTransparency = 0
+        highlight.Parent = Storage
+        local character = player.Character
+        if character then
+            highlight.Adornee = character
+        end
+        player.CharacterAdded:Connect(function(newCharacter)
+            highlight.Adornee = newCharacter
+        end)
+    end
+
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= Players.LocalPlayer then
+            HighlightPlayer(player)
+        end
+    end
+
+    Players.PlayerAdded:Connect(HighlightPlayer)
+    Players.PlayerRemoving:Connect(function(player)
+        if Storage:FindFirstChild(player.Name) then
+            Storage[player.Name]:Destroy()
+        end
+    end)
+end)
+
+-- Discord Server Button
+Tab1:CreateButton("Join Discord Server", function()
+    setclipboard(discordInvite)
+    print("Discord invite copied to clipboard: " .. discordInvite)
+end)
+
+-- Additional Section
+local Tab2 = Window:NewSection("Raizen")
